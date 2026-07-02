@@ -311,6 +311,13 @@ static bool deserializeSegment(JsonObject elem, byte it, byte presetId = 0)
 
   getVal(elem["bm"], seg.blendMode);
 
+  getVal(elem[F("amsx")], seg.audioModSpeed, 0, 22);
+  getVal(elem[F("amix")], seg.audioModIntensity, 0, 22);
+  getVal(elem[F("amc1")], seg.audioModCustom1, 0, 22);
+  getVal(elem[F("amc2")], seg.audioModCustom2, 0, 22);
+  getVal(elem[F("amc3")], seg.audioModCustom3, 0, 22);
+  getVal(elem[F("amop")], seg.audioModOpacity, 0, 22);
+
   JsonArray iarr = elem[F("i")]; //set individual LEDs
   if (!iarr.isNull()) {
     // set brightness immediately and disable transition
@@ -642,6 +649,12 @@ static void serializeSegment(JsonObject& root, const Segment& seg, byte id, bool
   root["si"]  = seg.soundSim;
   root["m12"] = seg.map1D2D;
   root["bm"]  = seg.blendMode;
+  if (seg.audioModSpeed)     root[F("amsx")] = seg.audioModSpeed;
+  if (seg.audioModIntensity) root[F("amix")] = seg.audioModIntensity;
+  if (seg.audioModCustom1)   root[F("amc1")] = seg.audioModCustom1;
+  if (seg.audioModCustom2)   root[F("amc2")] = seg.audioModCustom2;
+  if (seg.audioModCustom3)   root[F("amc3")] = seg.audioModCustom3;
+  if (seg.audioModOpacity)   root[F("amop")] = seg.audioModOpacity;
 }
 
 void serializeState(JsonObject root, bool forPreset, bool includeBri, bool segmentBounds, bool selectedSegmentsOnly)

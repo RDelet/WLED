@@ -457,6 +457,14 @@ class Segment {
       bool    check3  : 1;        // checkmark 3
     };
     uint8_t   blendMode;          // segment blending modes: top, bottom, add, subtract, difference, average, multiply, divide, lighten, darken, screen, overlay, hardlight, softlight, dodge, burn, stencil
+    // audio frequency modulation per slider
+    // 0=off, 1-6=named group (Bass/LowMid/Mid/HighMid/Treble/Volume), 7-22=individual FFT band 0-15
+    uint8_t   audioModSpeed;
+    uint8_t   audioModIntensity;
+    uint8_t   audioModCustom1;
+    uint8_t   audioModCustom2;
+    uint8_t   audioModCustom3;
+    uint8_t   audioModOpacity;
     char     *name;               // segment name
 
     // runtime data
@@ -541,6 +549,7 @@ class Segment {
     inline uint32_t getPixelColorXYRaw(unsigned x, unsigned y) const              { auto XY = [](unsigned X, unsigned Y){ return X + Y*Segment::vWidth(); }; return pixels[XY(x,y)]; };
   #endif
     void resetIfRequired();         // sets all SEGENV variables to 0 and clears data buffer
+    void applyAudioModulation();    // modulates speed/intensity/custom/opacity by FFT band
     void loadPalette(CRGBPalette16 &tgt, uint8_t pal);
 
     // transition functions
@@ -584,6 +593,12 @@ class Segment {
     , check2(false)
     , check3(false)
     , blendMode(0)
+    , audioModSpeed(0)
+    , audioModIntensity(0)
+    , audioModCustom1(0)
+    , audioModCustom2(0)
+    , audioModCustom3(0)
+    , audioModOpacity(0)
     , name(nullptr)
     , step(0)
     , call(0)

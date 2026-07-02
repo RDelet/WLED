@@ -225,6 +225,38 @@ void Segment::resetIfRequired() {
   #endif
 }
 
+static uint8_t getAudioModValue(uint8_t modSel, uint8_t *fftResult, float volumeSmth) {
+  if (modSel == 0) return 255;
+  if (modSel == 6) return (uint8_t)constrain((int)volumeSmth, 0, 255);
+  if (modSel >= 7 && modSel <= 22) return fftResult[modSel - 7];
+  static const uint8_t groupStart[] = {0, 3, 6, 10, 13};
+  static const uint8_t groupEnd[]   = {2, 5, 9, 12, 15};
+  if (modSel >= 1 && modSel <= 5) {
+    uint16_t sum = 0;
+    for (uint8_t i = groupStart[modSel-1]; i <= groupEnd[modSel-1]; i++) sum += fftResult[i];
+    return sum / (groupEnd[modSel-1] - groupStart[modSel-1] + 1);
+  }
+  return 255;
+}
+
+void Segment::applyAudioModulation() {
+  if (!audioModSpeed && !audioModIntensity && !audioModCustom1
+      && !audioModCustom2 && !audioModCustom3 && !audioModOpacity) return;
+
+  um_data_t *um_data = nullptr;
+  if (!UsermodManager::getUMData(&um_data, USERMOD_ID_AUDIOREACTIVE)) return;
+  float volumeSmth = *(float*)um_data->u_data[0];
+  uint8_t *fftResult = (uint8_t*)um_data->u_data[2];
+  if (!fftResult) return;
+
+  if (audioModSpeed)     speed     = scale8(speed,     getAudioModValue(audioModSpeed, fftResult, volumeSmth));
+  if (audioModIntensity) intensity = scale8(intensity, getAudioModValue(audioModIntensity, fftResult, volumeSmth));
+  if (audioModCustom1)   custom1   = scale8(custom1,   getAudioModValue(audioModCustom1, fftResult, volumeSmth));
+  if (audioModCustom2)   custom2   = scale8(custom2,   getAudioModValue(audioModCustom2, fftResult, volumeSmth));
+  if (audioModCustom3)   { uint8_t v = scale8(custom3 << 3, getAudioModValue(audioModCustom3, fftResult, volumeSmth)); custom3 = min((uint8_t)31, (uint8_t)(v >> 3)); }
+  if (audioModOpacity)   opacity   = scale8(opacity,   getAudioModValue(audioModOpacity, fftResult, volumeSmth));
+}
+
 void Segment::loadPalette(CRGBPalette16 &targetPalette, uint8_t pal) {
   // there is one randomly generated palette (1) followed by 4 palettes created from segment colors (2-5)
   // those are followed by 7 fastled palettes (6-12) and 59 gradient palettes (13-71)
@@ -1346,8 +1378,17 @@ void WS2812FX::service() {
         uint16_t prog = seg.progress();
         seg.beginDraw(prog);                // set up parameters for get/setPixelColor() (will also blend colors and palette if blend style is FADE)
         _currentSegment = &seg;             // set current segment for effect functions (SEGMENT & SEGENV)
+        // audio modulation: temporarily apply FFT-based modulation to segment parameters
+        uint8_t origSpeed = seg.speed, origIntensity = seg.intensity;
+        uint8_t origC1 = seg.custom1, origC2 = seg.custom2, origC3 = seg.custom3;
+        uint8_t origOpacity = seg.opacity;
+        seg.applyAudioModulation();
         // workaround for on/off transition to respect blending style
         _mode[seg.mode]();                  // run new/current mode (needed for bri workaround)
+        // restore original slider values (UI/presets stay unaffected)
+        seg.speed = origSpeed; seg.intensity = origIntensity;
+        seg.custom1 = origC1; seg.custom2 = origC2; seg.custom3 = origC3;
+        seg.opacity = origOpacity;
         seg.call++;
         // if segment is in transition and no old segment exists we don't need to run the old mode
         // (blendSegments() takes care of On/Off transitions and clipping)

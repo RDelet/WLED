@@ -679,6 +679,9 @@ function parseInfo(i) {
 //		gId("filterVol").classList.add("hide"); hideModes(" ♪"); // hide volume reactive effects
 //		gId("filterFreq").classList.add("hide"); hideModes(" ♫"); // hide frequency reactive effects
 //	}
+	var hasAR = i.u && i.u.AudioReactive;
+	initAudioModSelects();
+	showAudioModSelects(hasAR);
 	// Check for version upgrades on page load
 	checkVersionUpgrade(i);
 }
@@ -775,6 +778,7 @@ function populateSegments(s)
 							`<input id="seg${i}bri" class="noslide" onchange="setSegBri(${i})" oninput="updateTrail(this)" max="255" min="1" type="range" value="${inst.bri}" />`+
 							`<div class="sliderdisplay"></div>`+
 						`</div>`+
+						(s.AudioReactive && s.AudioReactive.on ? `<select id="seg${i}amop" class="audio-mod" onchange="setSegAudioMod(${i})" title="Audio mod opacity"></select>` : '') +
 					`</div>`;
 		let staX = inst.start;
 		let stoX = inst.stop;
@@ -903,6 +907,11 @@ function populateSegments(s)
 		updateLen(i);
 		updateTrail(gId(`seg${i}bri`));
 		gId(`segr${i}`).classList.add("hide");
+	}
+	if (s.AudioReactive && s.AudioReactive.on) {
+		for (var inst of (s.seg||[])) {
+			initSegAudioModSelect(inst.id, inst.amop);
+		}
 	}
 	if (segCount < 2) {
 		gId(`segd${lSeg}`).classList.add("hide"); // hide delete if only one segment
@@ -1533,6 +1542,7 @@ function readState(s,command=false)
 	gId('checkO1').checked = !(!i.o1);
 	gId('checkO2').checked = !(!i.o2);
 	gId('checkO3').checked = !(!i.o3);
+	updateAudioModSelects(i);
 
 	if (s.error && s.error != 0) {
 		var errstr = "";
@@ -2493,6 +2503,112 @@ function setCustom(i=1)
 	else if (i===2) obj.seg.c2 = val;
 	else            obj.seg.c1 = val;
 	requestJson(obj);
+}
+
+function setAudioMod(key, val)
+{
+	var obj = {"seg": {}};
+	obj.seg[key] = parseInt(val);
+	requestJson(obj);
+}
+
+function initAudioModSelects()
+{
+	var opts = '<option value="0">--</option>' +
+		'<optgroup label="Groups">' +
+		'<option value="1">Bass</option>' +
+		'<option value="2">Low-Mid</option>' +
+		'<option value="3">Mid</option>' +
+		'<option value="4">High-Mid</option>' +
+		'<option value="5">Treble</option>' +
+		'<option value="6">Volume</option>' +
+		'</optgroup>' +
+		'<optgroup label="Bands">' +
+		'<option value="7">43 Hz</option>' +
+		'<option value="8">86 Hz</option>' +
+		'<option value="9">130 Hz</option>' +
+		'<option value="10">216 Hz</option>' +
+		'<option value="11">301 Hz</option>' +
+		'<option value="12">430 Hz</option>' +
+		'<option value="13">560 Hz</option>' +
+		'<option value="14">818 Hz</option>' +
+		'<option value="15">1.1 kHz</option>' +
+		'<option value="16">1.4 kHz</option>' +
+		'<option value="17">1.9 kHz</option>' +
+		'<option value="18">2.4 kHz</option>' +
+		'<option value="19">3 kHz</option>' +
+		'<option value="20">3.7 kHz</option>' +
+		'<option value="21">4.5 kHz</option>' +
+		'<option value="22">7 kHz</option>' +
+		'</optgroup>';
+	['amsx','amix','amc1','amc2','amc3'].forEach(function(id) {
+		var el = gId(id);
+		if (el) el.innerHTML = opts;
+	});
+}
+
+function showAudioModSelects(show)
+{
+	['amsx','amix','amc1','amc2','amc3'].forEach(function(id) {
+		var el = gId(id);
+		if (el) {
+			if (show) el.classList.remove('hide'); else el.classList.add('hide');
+			var slider = el.closest('.slider');
+			if (slider) { if (show) slider.classList.add('has-audio-mod'); else slider.classList.remove('has-audio-mod'); }
+		}
+	});
+}
+
+function updateAudioModSelects(i)
+{
+	if (gId('amsx')) gId('amsx').value = i.amsx || 0;
+	if (gId('amix')) gId('amix').value = i.amix || 0;
+	if (gId('amc1')) gId('amc1').value = i.amc1 || 0;
+	if (gId('amc2')) gId('amc2').value = i.amc2 || 0;
+	if (gId('amc3')) gId('amc3').value = i.amc3 || 0;
+}
+
+function setSegAudioMod(s)
+{
+	var el = gId(`seg${s}amop`);
+	if (!el) return;
+	var obj = {"seg": {"id": s, "amop": parseInt(el.value)}};
+	requestJson(obj);
+}
+
+function initSegAudioModSelect(segId, value)
+{
+	var el = gId(`seg${segId}amop`);
+	if (!el) return;
+	var opts = '<option value="0">--</option>' +
+		'<optgroup label="Groups">' +
+		'<option value="1">Bass</option>' +
+		'<option value="2">Low-Mid</option>' +
+		'<option value="3">Mid</option>' +
+		'<option value="4">High-Mid</option>' +
+		'<option value="5">Treble</option>' +
+		'<option value="6">Volume</option>' +
+		'</optgroup>' +
+		'<optgroup label="Bands">' +
+		'<option value="7">43 Hz</option>' +
+		'<option value="8">86 Hz</option>' +
+		'<option value="9">130 Hz</option>' +
+		'<option value="10">216 Hz</option>' +
+		'<option value="11">301 Hz</option>' +
+		'<option value="12">430 Hz</option>' +
+		'<option value="13">560 Hz</option>' +
+		'<option value="14">818 Hz</option>' +
+		'<option value="15">1.1 kHz</option>' +
+		'<option value="16">1.4 kHz</option>' +
+		'<option value="17">1.9 kHz</option>' +
+		'<option value="18">2.4 kHz</option>' +
+		'<option value="19">3 kHz</option>' +
+		'<option value="20">3.7 kHz</option>' +
+		'<option value="21">4.5 kHz</option>' +
+		'<option value="22">7 kHz</option>' +
+		'</optgroup>';
+	el.innerHTML = opts;
+	el.value = value || 0;
 }
 
 function setOption(i=1, v=false)
